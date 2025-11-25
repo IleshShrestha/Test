@@ -26,7 +26,32 @@ export const authRouter = router({
         firstName: z.string().min(1),
         lastName: z.string().min(1),
         phoneNumber: z.string().regex(/^\+?\d{10,15}$/),
-        dateOfBirth: z.string(),
+        dateOfBirth: z
+          .string()
+          .refine(
+            (val) => {
+              const date = new Date(val);
+              return !isNaN(date.getTime());
+            },
+            { message: "Invalid date format" }
+          )
+          .refine(
+            (val) => {
+              const birthDate = new Date(val);
+              const today = new Date();
+              const age = today.getFullYear() - birthDate.getFullYear();
+              const monthDiff = today.getMonth() - birthDate.getMonth();
+              const dayDiff = today.getDate() - birthDate.getDate();
+
+              const actualAge =
+                monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
+                  ? age - 1
+                  : age;
+
+              return actualAge >= 18;
+            },
+            { message: "You must be at least 18 years old to sign up" }
+          ),
         ssn: z.string().regex(/^\d{9}$/),
         address: z.string().min(1),
         city: z.string().min(1),
