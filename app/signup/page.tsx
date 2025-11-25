@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
+import { US_STATE_CODES } from "@/lib/constants/usStates";
 import Link from "next/link";
 
 type SignupFormData = {
@@ -380,9 +381,15 @@ export default function SignupPage() {
                   <input
                     {...register("state", {
                       required: "State is required",
-                      pattern: {
-                        value: /^[A-Z]{2}$/,
-                        message: "Use 2-letter state code",
+                      validate: (value) => {
+                        const normalized = value?.trim().toUpperCase();
+                        if (!normalized) {
+                          return "State is required";
+                        }
+                        if (!US_STATE_CODES.includes(normalized)) {
+                          return "Invalid US state code";
+                        }
+                        return true;
                       },
                     })}
                     type="text"

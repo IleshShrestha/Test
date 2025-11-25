@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { TRPCError } from "@trpc/server";
 import { publicProcedure, router } from "../trpc";
+import { US_STATE_CODES } from "@/lib/constants/usStates";
 import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -55,7 +56,13 @@ export const authRouter = router({
         ssn: z.string().regex(/^\d{9}$/),
         address: z.string().min(1),
         city: z.string().min(1),
-        state: z.string().length(2).toUpperCase(),
+        state: z
+          .string()
+          .length(2)
+          .transform((val) => val.toUpperCase())
+          .refine((val) => US_STATE_CODES.includes(val), {
+            message: "Invalid state code",
+          }),
         zipCode: z.string().regex(/^\d{5}$/),
       })
     )
