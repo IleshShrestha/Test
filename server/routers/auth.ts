@@ -13,7 +13,16 @@ export const authRouter = router({
     .input(
       z.object({
         email: z.string().email().toLowerCase(),
-        password: z.string().min(8),
+        password: z
+          .string()
+          .min(12, "Password must be at least 12 characters")
+          .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+          .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+          .regex(/\d/, "Password must contain at least one number")
+          .regex(
+            /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/,
+            "Password must contain at least one special character (!@#$%^&*...)"
+          ),
         firstName: z.string().min(1),
         lastName: z.string().min(1),
         phoneNumber: z.string().regex(/^\+?\d{10,15}$/),
@@ -98,8 +107,8 @@ export const authRouter = router({
   login: publicProcedure
     .input(
       z.object({
-        email: z.string().email(),
-        password: z.string(),
+        email: z.string().email().toLowerCase(),
+        password: z.string().min(12),
       })
     )
     .mutation(async ({ input, ctx }) => {
