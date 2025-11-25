@@ -18,7 +18,7 @@ type FundingFormData = {
   amount: string;
   fundingType: "card" | "bank";
   accountNumber: string;
-  routingNumber?: string;
+  routingNumber: string;
 };
 
 export function FundingModal({
@@ -35,6 +35,7 @@ export function FundingModal({
   } = useForm<FundingFormData>({
     defaultValues: {
       fundingType: "card",
+      routingNumber: "",
     },
   });
 
@@ -146,18 +147,17 @@ export function FundingModal({
                 required: `${
                   fundingType === "card" ? "Card" : "Account"
                 } number is required`,
-                ...(fundingType === "card"
-                  ? {
-                      validate: {
-                        validCard: (value) => validateCardNumber(value),
-                      },
-                    }
-                  : {
-                      pattern: {
-                        value: /^\d+$/,
-                        message: "Invalid account number",
-                      },
-                    }),
+                validate: (value) => {
+                  if (fundingType === "card") {
+                    return validateCardNumber(value);
+                  }
+
+                  if (!value || !/^\d+$/.test(value)) {
+                    return "Invalid account number";
+                  }
+
+                  return true;
+                },
               })}
               type="text"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
@@ -180,12 +180,24 @@ export function FundingModal({
               <input
                 {...register("routingNumber", {
                   required: "Routing number is required",
-                  pattern: {
-                    value: /^\d{9}$/,
-                    message: "Routing number must be 9 digits",
+                  validate: (value) => {
+                    if (!value) {
+                      return "Routing number is required";
+                    }
+
+                    if (!/^\d+$/.test(value)) {
+                      return "Routing number must contain digits only";
+                    }
+
+                    if (value.length !== 9) {
+                      return "Routing number must be exactly 9 digits";
+                    }
+
+                    return true;
                   },
                 })}
                 type="text"
+                maxLength={9}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                 placeholder="123456789"
               />
