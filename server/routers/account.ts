@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { validateCardNumber } from "@/lib/utils/cardValidation";
 
 function generateAccountNumber(): string {
@@ -176,30 +176,29 @@ export const accountRouter = router({
         processedAt: new Date().toISOString(),
       });
 
-      // Fetch the created transaction
       const transaction = await db
         .select()
         .from(transactions)
-        .orderBy(transactions.createdAt)
+        .where(eq(transactions.accountId, input.accountId))
+        .orderBy(desc(transactions.id))
         .limit(1)
         .get();
 
-      // Update account balance
+      const currentBalanceInCents = Math.round(account.balance * 100);
+      const amountInCents = Math.round(amount * 100);
+      const newBalanceInCents = currentBalanceInCents + amountInCents;
+      const newBalance = newBalanceInCents / 100;
+
       await db
         .update(accounts)
         .set({
-          balance: account.balance + amount,
+          balance: newBalance,
         })
         .where(eq(accounts.id, input.accountId));
 
-      let finalBalance = account.balance;
-      for (let i = 0; i < 100; i++) {
-        finalBalance = finalBalance + amount / 100;
-      }
-
       return {
         transaction,
-        newBalance: finalBalance, // This will be slightly off due to float precision
+        newBalance,
       };
     }),
 
@@ -232,22 +231,12 @@ export const accountRouter = router({
       const accountTransactions = await db
         .select()
         .from(transactions)
-        .where(eq(transactions.accountId, input.accountId));
+        .where(eq(transactions.accountId, input.accountId))
+        .orderBy(transactions.createdAt);
 
-      const enrichedTransactions = [];
-      for (const transaction of accountTransactions) {
-        const accountDetails = await db
-          .select()
-          .from(accounts)
-          .where(eq(accounts.id, transaction.accountId))
-          .get();
-
-        enrichedTransactions.push({
-          ...transaction,
-          accountType: accountDetails?.accountType,
-        });
-      }
-
-      return enrichedTransactions;
+      return accountTransactions.map((transaction) => ({
+        ...transaction,
+        accountType: account.accountType,
+      }));
     }),
 });
