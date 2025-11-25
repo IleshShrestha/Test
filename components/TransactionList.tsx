@@ -7,7 +7,8 @@ interface TransactionListProps {
 }
 
 export function TransactionList({ accountId }: TransactionListProps) {
-  const { data: transactions, isLoading } = trpc.account.getTransactions.useQuery({ accountId });
+  const { data: transactions, isLoading } =
+    trpc.account.getTransactions.useQuery({ accountId });
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -47,13 +48,21 @@ export function TransactionList({ accountId }: TransactionListProps) {
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Date
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Type
+            </th>
             <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
               Description
             </th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
-            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Amount
+            </th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              Status
+            </th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-200">
@@ -63,15 +72,31 @@ export function TransactionList({ accountId }: TransactionListProps) {
                 {formatDate(transaction.createdAt!)}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span className={`capitalize ${transaction.type === "deposit" ? "text-green-600" : "text-red-600"}`}>
+                <span
+                  className={`capitalize ${
+                    transaction.type === "deposit"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }`}
+                >
                   {transaction.type}
                 </span>
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {transaction.description ? <span dangerouslySetInnerHTML={{ __html: transaction.description }} /> : "-"}
+                {transaction.description ? (
+                  <span>{transaction.description}</span>
+                ) : (
+                  <span>-</span>
+                )}
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                <span className={transaction.type === "deposit" ? "text-green-600" : "text-red-600"}>
+                <span
+                  className={
+                    transaction.type === "deposit"
+                      ? "text-green-600"
+                      : "text-red-600"
+                  }
+                >
                   {transaction.type === "deposit" ? "+" : "-"}
                   {formatCurrency(transaction.amount)}
                 </span>
@@ -79,7 +104,9 @@ export function TransactionList({ accountId }: TransactionListProps) {
               <td className="px-6 py-4 whitespace-nowrap">
                 <span
                   className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    transaction.status === "completed" ? "bg-green-100 text-green-800" : "bg-yellow-100 text-yellow-800"
+                    transaction.status === "completed"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-yellow-100 text-yellow-800"
                   }`}
                 >
                   {transaction.status}

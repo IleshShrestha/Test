@@ -7,12 +7,10 @@ const SALT_LENGTH = 64; // 512 bits
 const ITERATIONS = 100000; // PBKDF2 iterations
 
 function getSalt(): Buffer {
-  // Option 1: Use salt from environment variable (recommended for production)
   const envSalt = process.env.ENCRYPTION_SALT;
   if (envSalt) {
     // If provided as hex string, convert it
     if (envSalt.length === SALT_LENGTH * 2) {
-      // 64 bytes = 128 hex chars
       try {
         return Buffer.from(envSalt, "hex");
       } catch {

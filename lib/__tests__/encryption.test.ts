@@ -42,7 +42,9 @@ describe("SSN Encryption", () => {
     });
 
     it("should throw error for null/undefined", () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(() => encryptSSN(null as any)).toThrow();
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       expect(() => encryptSSN(undefined as any)).toThrow();
     });
   });
