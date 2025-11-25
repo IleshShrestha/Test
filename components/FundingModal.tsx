@@ -91,9 +91,10 @@ export function FundingModal({
                     value: /^\d+\.?\d{0,2}$/,
                     message: "Invalid amount format",
                   },
-                  min: {
-                    value: 0.0,
-                    message: "Amount must be at least $0.01",
+                  validate: {
+                    minimumAmount: (value) =>
+                      parseFloat(value) >= 10 ||
+                      "Amount must be at least $10.00",
                   },
                   max: {
                     value: 10000,
