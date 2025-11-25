@@ -4,6 +4,7 @@ import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { validateCardNumber } from "@/lib/utils/cardValidation";
 
 function generateAccountNumber(): string {
   return Math.floor(Math.random() * 1000000000)
@@ -23,7 +24,12 @@ export const accountRouter = router({
       const existingAccount = await db
         .select()
         .from(accounts)
-        .where(and(eq(accounts.userId, ctx.user.id), eq(accounts.accountType, input.accountType)))
+        .where(
+          and(
+            eq(accounts.userId, ctx.user.id),
+            eq(accounts.accountType, input.accountType)
+          )
+        )
         .get();
 
       if (existingAccount) {
@@ -39,7 +45,11 @@ export const accountRouter = router({
       // Generate unique account number
       while (!isUnique) {
         accountNumber = generateAccountNumber();
-        const existing = await db.select().from(accounts).where(eq(accounts.accountNumber, accountNumber)).get();
+        const existing = await db
+          .select()
+          .from(accounts)
+          .where(eq(accounts.accountNumber, accountNumber))
+          .get();
         isUnique = !existing;
       }
 
@@ -52,7 +62,11 @@ export const accountRouter = router({
       });
 
       // Fetch the created account
-      const account = await db.select().from(accounts).where(eq(accounts.accountNumber, accountNumber!)).get();
+      const account = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.accountNumber, accountNumber!))
+        .get();
 
       return (
         account || {
@@ -68,7 +82,10 @@ export const accountRouter = router({
     }),
 
   getAccounts: protectedProcedure.query(async ({ ctx }) => {
-    const userAccounts = await db.select().from(accounts).where(eq(accounts.userId, ctx.user.id));
+    const userAccounts = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.userId, ctx.user.id));
 
     return userAccounts;
   }),
@@ -78,11 +95,46 @@ export const accountRouter = router({
       z.object({
         accountId: z.number(),
         amount: z.number().positive(),
-        fundingSource: z.object({
-          type: z.enum(["card", "bank"]),
-          accountNumber: z.string(),
-          routingNumber: z.string().optional(),
-        }),
+        fundingSource: z
+          .object({
+            type: z.enum(["card", "bank"]),
+            accountNumber: z.string(),
+            routingNumber: z.string().optional(),
+          })
+          .superRefine((source, ctx) => {
+            if (source.type === "card") {
+              const validation = validateCardNumber(source.accountNumber);
+              if (validation !== true) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: validation,
+                  path: ["accountNumber"],
+                });
+              }
+            } else {
+              if (!/^\d+$/.test(source.accountNumber)) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: "Invalid account number",
+                  path: ["accountNumber"],
+                });
+              }
+
+              if (!source.routingNumber) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: "Routing number is required",
+                  path: ["routingNumber"],
+                });
+              } else if (!/^\d{9}$/.test(source.routingNumber)) {
+                ctx.addIssue({
+                  code: z.ZodIssueCode.custom,
+                  message: "Routing number must be 9 digits",
+                  path: ["routingNumber"],
+                });
+              }
+            }
+          }),
       })
     )
     .mutation(async ({ input, ctx }) => {
@@ -92,7 +144,12 @@ export const accountRouter = router({
       const account = await db
         .select()
         .from(accounts)
-        .where(and(eq(accounts.id, input.accountId), eq(accounts.userId, ctx.user.id)))
+        .where(
+          and(
+            eq(accounts.id, input.accountId),
+            eq(accounts.userId, ctx.user.id)
+          )
+        )
         .get();
 
       if (!account) {
@@ -120,7 +177,12 @@ export const accountRouter = router({
       });
 
       // Fetch the created transaction
-      const transaction = await db.select().from(transactions).orderBy(transactions.createdAt).limit(1).get();
+      const transaction = await db
+        .select()
+        .from(transactions)
+        .orderBy(transactions.createdAt)
+        .limit(1)
+        .get();
 
       // Update account balance
       await db
@@ -152,7 +214,12 @@ export const accountRouter = router({
       const account = await db
         .select()
         .from(accounts)
-        .where(and(eq(accounts.id, input.accountId), eq(accounts.userId, ctx.user.id)))
+        .where(
+          and(
+            eq(accounts.id, input.accountId),
+            eq(accounts.userId, ctx.user.id)
+          )
+        )
         .get();
 
       if (!account) {
@@ -169,7 +236,11 @@ export const accountRouter = router({
 
       const enrichedTransactions = [];
       for (const transaction of accountTransactions) {
-        const accountDetails = await db.select().from(accounts).where(eq(accounts.id, transaction.accountId)).get();
+        const accountDetails = await db
+          .select()
+          .from(accounts)
+          .where(eq(accounts.id, transaction.accountId))
+          .get();
 
         enrichedTransactions.push({
           ...transaction,
