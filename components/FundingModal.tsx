@@ -3,6 +3,10 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
+import {
+  normalizeCardNumber,
+  validateCardNumber,
+} from "@/lib/utils/cardValidation";
 
 interface FundingModalProps {
   accountId: number;
@@ -42,13 +46,17 @@ export function FundingModal({
 
     try {
       const amount = parseFloat(data.amount);
+      const normalizedAccountNumber =
+        data.fundingType === "card"
+          ? normalizeCardNumber(data.accountNumber)
+          : data.accountNumber;
 
       await fundAccountMutation.mutateAsync({
         accountId,
         amount,
         fundingSource: {
           type: data.fundingType,
-          accountNumber: data.accountNumber,
+          accountNumber: normalizedAccountNumber,
           routingNumber: data.routingNumber,
         },
       });
@@ -138,28 +146,23 @@ export function FundingModal({
                 required: `${
                   fundingType === "card" ? "Card" : "Account"
                 } number is required`,
-                pattern: {
-                  value: fundingType === "card" ? /^\d{16}$/ : /^\d+$/,
-                  message:
-                    fundingType === "card"
-                      ? "Card number must be 16 digits"
-                      : "Invalid account number",
-                },
-                validate: {
-                  validCard: (value) => {
-                    if (fundingType !== "card") return true;
-                    return (
-                      value.startsWith("4") ||
-                      value.startsWith("5") ||
-                      "Invalid card number"
-                    );
-                  },
-                },
+                ...(fundingType === "card"
+                  ? {
+                      validate: {
+                        validCard: (value) => validateCardNumber(value),
+                      },
+                    }
+                  : {
+                      pattern: {
+                        value: /^\d+$/,
+                        message: "Invalid account number",
+                      },
+                    }),
               })}
               type="text"
               className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
               placeholder={
-                fundingType === "card" ? "1234567812345678" : "123456789"
+                fundingType === "card" ? "1234 5678 1234 5678" : "123456789"
               }
             />
             {errors.accountNumber && (
@@ -193,8 +196,6 @@ export function FundingModal({
               )}
             </div>
           )}
-
-          {error && <div className="text-sm text-red-600">{error}</div>}
 
           <div className="flex justify-end space-x-3">
             <button
