@@ -18,7 +18,7 @@ type FundingFormData = {
   amount: string;
   fundingType: "card" | "bank";
   accountNumber: string;
-  routingNumber?: string;
+  routingNumber: string;
 };
 
 export function FundingModal({
@@ -35,6 +35,7 @@ export function FundingModal({
   } = useForm<FundingFormData>({
     defaultValues: {
       fundingType: "card",
+      routingNumber: "",
     },
   });
 
