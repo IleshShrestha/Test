@@ -255,8 +255,43 @@ export default function SignupPage() {
                 <input
                   {...register("dateOfBirth", {
                     required: "Date of birth is required",
+                    validate: {
+                      validDate: (value) => {
+                        if (!value) return "Date of birth is required";
+                        const date = new Date(value);
+                        if (isNaN(date.getTime())) {
+                          return "Invalid date format";
+                        }
+                        return true;
+                      },
+                      minAge: (value) => {
+                        const birthDate = new Date(value);
+                        const today = new Date();
+                        const age =
+                          today.getFullYear() - birthDate.getFullYear();
+                        const monthDiff =
+                          today.getMonth() - birthDate.getMonth();
+                        const dayDiff = today.getDate() - birthDate.getDate();
+
+                        const actualAge =
+                          monthDiff < 0 || (monthDiff === 0 && dayDiff < 0)
+                            ? age - 1
+                            : age;
+
+                        if (actualAge < 18) {
+                          return "You must be at least 18 years old to sign up";
+                        }
+                        return true;
+                      },
+                    },
                   })}
                   type="date"
+                  max={(() => {
+                    const today = new Date();
+                    const maxDate = new Date(today);
+                    maxDate.setFullYear(today.getFullYear() - 18);
+                    return maxDate.toISOString().split("T")[0];
+                  })()}
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                 />
                 {errors.dateOfBirth && (
