@@ -119,11 +119,14 @@ describe("Account funding performance", () => {
 
     const transactionsResult = await caller.getTransactions({
       accountId: account.id,
+      limit: 100, // Get all transactions in one call
     });
 
-    expect(transactionsResult).toHaveLength(transactionCount);
-    const amounts = transactionsResult.map((tx) => tx.amount);
-    expect(amounts).toEqual(
+    expect(transactionsResult.transactions).toHaveLength(transactionCount);
+    const amounts = transactionsResult.transactions.map((tx) => tx.amount);
+    // Transactions are returned newest first (descending by amount), sort ascending for comparison
+    const sortedAmounts = [...amounts].sort((a, b) => a - b);
+    expect(sortedAmounts).toEqual(
       Array.from({ length: transactionCount }, (_, i) => 5 + i)
     );
   });

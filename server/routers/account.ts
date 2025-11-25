@@ -3,7 +3,7 @@ import { TRPCError } from "@trpc/server";
 import { protectedProcedure, router } from "../trpc";
 import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, sql } from "drizzle-orm";
 import { validateCardNumber } from "@/lib/utils/cardValidation";
 
 function generateAccountNumber(): string {
@@ -206,6 +206,8 @@ export const accountRouter = router({
     .input(
       z.object({
         accountId: z.number(),
+        page: z.number().min(1).default(1),
+        limit: z.number().min(1).max(100).default(10),
       })
     )
     .query(async ({ input, ctx }) => {
@@ -228,15 +230,39 @@ export const accountRouter = router({
         });
       }
 
+      const offset = (input.page - 1) * input.limit;
+
+      // Get total count for pagination
+      const totalCountResult = await db
+        .select({ count: sql<number>`cast(count(*) as integer)`.as("count") })
+        .from(transactions)
+        .where(eq(transactions.accountId, input.accountId));
+
+      const totalCount = Number(totalCountResult[0]?.count) || 0;
+      const totalPages = Math.ceil(totalCount / input.limit);
+
+      // Get paginated transactions (newest first)
       const accountTransactions = await db
         .select()
         .from(transactions)
         .where(eq(transactions.accountId, input.accountId))
-        .orderBy(transactions.createdAt);
+        .orderBy(desc(transactions.createdAt))
+        .limit(input.limit)
+        .offset(offset);
 
-      return accountTransactions.map((transaction) => ({
-        ...transaction,
-        accountType: account.accountType,
-      }));
+      return {
+        transactions: accountTransactions.map((transaction) => ({
+          ...transaction,
+          accountType: account.accountType,
+        })),
+        pagination: {
+          page: input.page,
+          limit: input.limit,
+          totalCount,
+          totalPages,
+          hasNextPage: input.page < totalPages,
+          hasPreviousPage: input.page > 1,
+        },
+      };
     }),
 });
