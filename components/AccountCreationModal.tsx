@@ -8,8 +8,13 @@ interface AccountCreationModalProps {
   onSuccess: () => void;
 }
 
-export function AccountCreationModal({ onClose, onSuccess }: AccountCreationModalProps) {
-  const [accountType, setAccountType] = useState<"checking" | "savings">("checking");
+export function AccountCreationModal({
+  onClose,
+  onSuccess,
+}: AccountCreationModalProps) {
+  const [accountType, setAccountType] = useState<"checking" | "savings">(
+    "checking"
+  );
   const [error, setError] = useState("");
 
   const createAccountMutation = trpc.account.createAccount.useMutation();
@@ -21,19 +26,23 @@ export function AccountCreationModal({ onClose, onSuccess }: AccountCreationModa
     try {
       await createAccountMutation.mutateAsync({ accountType });
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || "Failed to create account");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to create account");
     }
   };
 
   return (
     <div className="fixed inset-0 bg-gray-500 bg-opacity-75 flex items-center justify-center p-4">
       <div className="bg-white rounded-lg max-w-md w-full p-6">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Open New Account</h3>
+        <h3 className="text-lg font-medium text-gray-900 mb-4">
+          Open New Account
+        </h3>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Account Type</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Account Type
+            </label>
             <div className="space-y-2">
               <label className="flex items-center">
                 <input
@@ -73,7 +82,9 @@ export function AccountCreationModal({ onClose, onSuccess }: AccountCreationModa
               disabled={createAccountMutation.isPending}
               className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
             >
-              {createAccountMutation.isPending ? "Creating..." : "Create Account"}
+              {createAccountMutation.isPending
+                ? "Creating..."
+                : "Create Account"}
             </button>
           </div>
         </form>

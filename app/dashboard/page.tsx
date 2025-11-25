@@ -11,9 +11,12 @@ export default function DashboardPage() {
   const router = useRouter();
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [fundingAccountId, setFundingAccountId] = useState<number | null>(null);
-  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(null);
+  const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
+    null
+  );
 
-  const { data: accounts, refetch: refetchAccounts } = trpc.account.getAccounts.useQuery();
+  const { data: accounts, refetch: refetchAccounts } =
+    trpc.account.getAccounts.useQuery();
   const logoutMutation = trpc.auth.logout.useMutation();
 
   const handleLogout = async () => {
@@ -51,7 +54,9 @@ export default function DashboardPage() {
       <main className="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
         <div className="px-4 py-6 sm:px-0">
           <div className="mb-6">
-            <h2 className="text-2xl font-bold text-gray-900 mb-4">Your Accounts</h2>
+            <h2 className="text-2xl font-bold text-gray-900 mb-4">
+              Your Accounts
+            </h2>
 
             {accounts && accounts.length > 0 ? (
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -63,15 +68,23 @@ export default function DashboardPage() {
                   >
                     <div className="px-4 py-5 sm:p-6">
                       <dt className="text-sm font-medium text-gray-500 truncate">
-                        {account.accountType.charAt(0).toUpperCase() + account.accountType.slice(1)} Account
+                        {account.accountType.charAt(0).toUpperCase() +
+                          account.accountType.slice(1)}{" "}
+                        Account
                       </dt>
-                      <dd className="mt-1 text-3xl font-semibold text-gray-900">{formatCurrency(account.balance)}</dd>
-                      <dd className="mt-1 text-sm text-gray-500">Account: ****{account.accountNumber.slice(-4)}</dd>
+                      <dd className="mt-1 text-3xl font-semibold text-gray-900">
+                        {formatCurrency(account.balance)}
+                      </dd>
+                      <dd className="mt-1 text-sm text-gray-500">
+                        Account: ****{account.accountNumber.slice(-4)}
+                      </dd>
                       <dd className="mt-1 text-sm text-gray-500">
                         Status:{" "}
                         <span
                           className={`font-medium ${
-                            account.status === "active" ? "text-green-600" : "text-yellow-600"
+                            account.status === "active"
+                              ? "text-green-600"
+                              : "text-yellow-600"
                           }`}
                         >
                           {account.status}
@@ -92,7 +105,9 @@ export default function DashboardPage() {
               </div>
             ) : (
               <div className="text-center py-12 bg-white rounded-lg shadow">
-                <p className="text-gray-500 mb-4">You don't have any accounts yet.</p>
+                <p className="text-gray-500 mb-4">
+                  You don&apos;t have any accounts yet.
+                </p>
               </div>
             )}
 
@@ -106,7 +121,9 @@ export default function DashboardPage() {
 
           {selectedAccountId && (
             <div className="mt-8">
-              <h3 className="text-xl font-bold text-gray-900 mb-4">Transaction History</h3>
+              <h3 className="text-xl font-bold text-gray-900 mb-4">
+                Transaction History
+              </h3>
               <TransactionList accountId={selectedAccountId} />
             </div>
           )}

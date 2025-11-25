@@ -1,7 +1,41 @@
 {
   "extends": ["next/core-web-vitals", "next/typescript"],
   "rules": {
+    // TypeScript
     "@typescript-eslint/no-explicit-any": "off",
-    "react/no-unescaped-entities": "off"
+    "@typescript-eslint/no-unused-vars": [
+      "error",
+      {
+        "argsIgnorePattern": "^_",
+        "varsIgnorePattern": "^_"
+      }
+    ],
+    "@typescript-eslint/no-unused-expressions": "error",
+    "unused-imports/no-unused-imports": "error",
+    "unused-imports/no-unused-vars": [
+      "warn",
+      {
+        "vars": "all",
+        "varsIgnorePattern": "^_",
+        "args": "after-used",
+        "argsIgnorePattern": "^_"
+      }
+    ],
+    // React XSS Prevention (Critical)
+    "react/no-danger": "error",
+    "react/no-danger-with-children": "error",
+    "react/jsx-no-target-blank": "error",
+    "react/jsx-no-script-url": "error",
+
+    // React Best Practices
+    "react/no-unescaped-entities": "off",
+    "react/no-unknown-property": "error",
+    "react/no-unused-prop-types": "warn",
+
+    // General Security
+    "no-eval": "error",
+    "no-implied-eval": "error",
+    "no-new-func": "error",
+    "no-script-url": "error"
   }
 }
