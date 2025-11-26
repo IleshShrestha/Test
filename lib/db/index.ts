@@ -4,14 +4,30 @@ import * as schema from "./schema";
 
 const dbPath = "bank.db";
 
-const sqlite = new Database(dbPath);
+// Initialize database with WAL mode and busy timeout
+function createDatabase() {
+  const sqlite = new Database(dbPath);
+
+  // Enable WAL mode for better concurrency and performance
+  // This allows multiple readers simultaneously
+  sqlite.pragma("journal_mode = WAL");
+
+  // Set busy timeout to handle concurrent access gracefully (5 seconds)
+  sqlite.pragma("busy_timeout = 5000");
+
+  return sqlite;
+}
+
+const sqlite = createDatabase();
 export const db = drizzle(sqlite, { schema });
 
-const connections: Database.Database[] = [];
+// Track connection for cleanup
+let isInitialized = false;
 
 export function initDb() {
-  const conn = new Database(dbPath);
-  connections.push(conn);
+  if (isInitialized) {
+    return;
+  }
 
   // Create tables if they don't exist
   sqlite.exec(`
@@ -60,6 +76,37 @@ export function initDb() {
       created_at TEXT DEFAULT CURRENT_TIMESTAMP
     );
   `);
+
+  isInitialized = true;
+}
+
+// Graceful shutdown handler
+export function closeDb() {
+  try {
+    sqlite.close();
+  } catch (error) {
+    console.error("Error closing database connection:", error);
+  }
+}
+
+// Handle process termination
+if (typeof process !== "undefined") {
+  process.on("SIGINT", () => {
+    closeDb();
+    process.exit(0);
+  });
+
+  process.on("SIGTERM", () => {
+    closeDb();
+    process.exit(0);
+  });
+
+  // Handle uncaught exceptions
+  process.on("uncaughtException", (error) => {
+    console.error("Uncaught exception:", error);
+    closeDb();
+    process.exit(1);
+  });
 }
 
 // Initialize database on import
