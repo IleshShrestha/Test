@@ -1,82 +1,34 @@
 "use strict";
 
+import cardValidator from "card-validator";
+
 const stripSeparators = (value: string): string => value.replace(/[\s-]/g, "");
 
 export type CardType = "visa" | "mastercard" | "amex" | "discover";
 
-type CardRule = {
-  type: CardType;
-  lengths: number[];
-  match: (digits: string) => boolean;
-};
+// Map card-validator card types to our CardType
+const mapCardType = (cardType: string | undefined): CardType | null => {
+  if (!cardType) return null;
 
-const cardRules: CardRule[] = [
-  {
-    type: "visa",
-    lengths: [13, 16, 19],
-    match: (digits) => digits.startsWith("4"),
-  },
-  {
-    type: "mastercard",
-    lengths: [16],
-    match: (digits) => {
-      const prefix2 = Number(digits.slice(0, 2));
-      const prefix4 = Number(digits.slice(0, 4));
-      return (
-        (prefix2 >= 51 && prefix2 <= 55) || (prefix4 >= 2221 && prefix4 <= 2720)
-      );
-    },
-  },
-  {
-    type: "amex",
-    lengths: [15],
-    match: (digits) => digits.startsWith("34") || digits.startsWith("37"),
-  },
-  {
-    type: "discover",
-    lengths: [16, 19],
-    match: (digits) => {
-      const prefix2 = Number(digits.slice(0, 2));
-      const prefix3 = Number(digits.slice(0, 3));
-      const prefix6 = Number(digits.slice(0, 6));
-      return (
-        digits.startsWith("6011") ||
-        (prefix6 >= 622126 && prefix6 <= 622925) ||
-        (prefix3 >= 644 && prefix3 <= 649) ||
-        prefix2 === 65
-      );
-    },
-  },
-];
+  const typeMap: Record<string, CardType> = {
+    visa: "visa",
+    mastercard: "mastercard",
+    "american-express": "amex",
+    discover: "discover",
+  };
 
-const luhnCheck = (digits: string): boolean => {
-  let sum = 0;
-  let shouldDouble = false;
-
-  for (let i = digits.length - 1; i >= 0; i -= 1) {
-    let digit = Number(digits[i]);
-    if (Number.isNaN(digit)) return false;
-
-    if (shouldDouble) {
-      digit *= 2;
-      if (digit > 9) digit -= 9;
-    }
-
-    sum += digit;
-    shouldDouble = !shouldDouble;
-  }
-
-  return sum % 10 === 0;
+  return typeMap[cardType] ?? null;
 };
 
 export const normalizeCardNumber = (value: string): string =>
   stripSeparators(value);
 
 export const detectCardType = (digits: string): CardType | null => {
-  const match = cardRules.find(
-    (rule) => rule.lengths.includes(digits.length) && rule.match(digits)
-  );
-  return match?.type ?? null;
+  const validation = cardValidator.number(digits);
+  if (!validation.isValid || !validation.card) {
+    return null;
+  }
+  return mapCardType(validation.card.type);
 };
 
 export const validateCardNumber = (value: string): true | string => {
@@ -94,13 +46,19 @@ export const validateCardNumber = (value: string): true | string => {
     return "Card number must be between 13 and 19 digits";
   }
 
-  const cardType = detectCardType(normalized);
-  if (!cardType) {
+  const validation = cardValidator.number(normalized);
+
+  if (!validation.isValid) {
+    return "Invalid card number";
+  }
+
+  if (!validation.card) {
     return "Card must be Visa, Mastercard, American Express, or Discover";
   }
 
-  if (!luhnCheck(normalized)) {
-    return "Invalid card number";
+  const cardType = mapCardType(validation.card.type);
+  if (!cardType) {
+    return "Card must be Visa, Mastercard, American Express, or Discover";
   }
 
   return true;
