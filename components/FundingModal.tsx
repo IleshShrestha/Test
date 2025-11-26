@@ -7,7 +7,7 @@ import {
   normalizeCardNumber,
   validateCardNumber,
 } from "@/lib/utils/cardValidation";
-import { normalizeFundingAmount } from "@/lib/utils/amountNormalization";
+import { normalizeFundingAmount } from "@/lib/utils/fundingNormalization";
 
 interface FundingModalProps {
   accountId: number;
