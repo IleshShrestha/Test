@@ -102,12 +102,37 @@ describe("Account funding performance", () => {
     testData.userIds.push(user.id);
     const account = await createAccountForUser(user);
     testData.accountIds.push(account.id);
+
+    // Verify account exists before proceeding
+    const verifyAccount = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, account.id))
+      .get();
+
+    if (!verifyAccount) {
+      throw new Error(`Account ${account.id} does not exist`);
+    }
+
     const caller = accountRouter.createCaller(createMockContext(user));
 
     const deposits = 200;
     const depositAmount = 0.23;
 
     for (let i = 0; i < deposits; i++) {
+      // Verify account still exists before each transaction
+      const accountCheck = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.id, account.id))
+        .get();
+
+      if (!accountCheck) {
+        throw new Error(
+          `Account ${account.id} was deleted during test execution`
+        );
+      }
+
       await caller.fundAccount({
         accountId: account.id,
         amount: depositAmount,
@@ -132,11 +157,36 @@ describe("Account funding performance", () => {
     testData.userIds.push(user.id);
     const account = await createAccountForUser(user);
     testData.accountIds.push(account.id);
+
+    // Verify account exists before proceeding
+    const verifyAccount = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, account.id))
+      .get();
+
+    if (!verifyAccount) {
+      throw new Error(`Account ${account.id} does not exist`);
+    }
+
     const caller = accountRouter.createCaller(createMockContext(user));
 
     const transactionCount = 60;
 
     for (let i = 0; i < transactionCount; i++) {
+      // Verify account still exists before each transaction
+      const accountCheck = await db
+        .select()
+        .from(accounts)
+        .where(eq(accounts.id, account.id))
+        .get();
+
+      if (!accountCheck) {
+        throw new Error(
+          `Account ${account.id} was deleted during test execution`
+        );
+      }
+
       await caller.fundAccount({
         accountId: account.id,
         amount: 5 + i,

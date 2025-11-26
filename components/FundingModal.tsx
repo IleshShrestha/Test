@@ -210,6 +210,12 @@ export function FundingModal({
             </div>
           )}
 
+          {error && (
+            <div className="text-sm text-red-600 bg-red-50 p-3 rounded-md">
+              {error}
+            </div>
+          )}
+
           <div className="flex justify-end space-x-3">
             <button
               type="button"
