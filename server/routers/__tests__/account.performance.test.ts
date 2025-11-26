@@ -1,4 +1,4 @@
-import { describe, it, expect, afterEach } from "@jest/globals";
+import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { accountRouter } from "../account";
 import { db } from "@/lib/db";
 import { users, accounts, transactions, sessions } from "@/lib/db/schema";
@@ -23,6 +23,41 @@ const createMockContext = (user: any) => ({
   res: { setHeader: jest.fn(), set: jest.fn() } as any,
 });
 
+// Track test emails for cleanup
+const testEmails: string[] = [];
+
+const cleanupUser = async (email: string) => {
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .get();
+  if (user) {
+    // Delete in order to respect foreign key constraints
+    // First, get all accounts for this user
+    const userAccounts = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.userId, user.id))
+      .all();
+
+    // Delete transactions for all accounts
+    for (const account of userAccounts) {
+      await db
+        .delete(transactions)
+        .where(eq(transactions.accountId, account.id))
+        .run();
+    }
+
+    // Delete sessions, accounts, and user in order to respect foreign key constraints
+    await Promise.all([
+      db.delete(sessions).where(eq(sessions.userId, user.id)).run(),
+      db.delete(accounts).where(eq(accounts.userId, user.id)).run(),
+      db.delete(users).where(eq(users.id, user.id)).run(),
+    ]);
+  }
+};
+
 const createTestUser = async (identifier: string) => {
   const email = `${identifier}-${Date.now()}@example.com`;
   await db.insert(users).values({
@@ -39,6 +74,9 @@ const createTestUser = async (identifier: string) => {
   if (!user) {
     throw new Error("Failed to create test user");
   }
+
+  // Track the email for cleanup
+  testEmails.push(email);
 
   return user;
 };
@@ -65,74 +103,28 @@ const createAccountForUser = async (
   return account;
 };
 
-// Track test data for cleanup
-const testData: { userIds: number[]; accountIds: number[] } = {
-  userIds: [],
-  accountIds: [],
-};
+beforeEach(async () => {
+  // Clean up data from previous test run
+  await Promise.all(testEmails.map(cleanupUser));
+  testEmails.length = 0; // Clear the array
+});
 
 afterEach(async () => {
-  // Clean up only data created by this test file
-  for (const accountId of testData.accountIds) {
-    try {
-      await db
-        .delete(transactions)
-        .where(eq(transactions.accountId, accountId))
-        .run();
-    } catch (error) {
-      // Ignore errors
-    }
-  }
-  for (const userId of testData.userIds) {
-    try {
-      await db.delete(sessions).where(eq(sessions.userId, userId)).run();
-      await db.delete(accounts).where(eq(accounts.userId, userId)).run();
-      await db.delete(users).where(eq(users.id, userId)).run();
-    } catch (error) {
-      // Ignore errors
-    }
-  }
-  testData.userIds = [];
-  testData.accountIds = [];
+  // Clean up any remaining test data after each test
+  await Promise.all(testEmails.map(cleanupUser));
+  testEmails.length = 0; // Clear the array
 });
 
 describe("Account funding performance", () => {
   it("maintains precise balances after many deposits", async () => {
-    const user = await createTestUser("balance-user@example.com");
-    testData.userIds.push(user.id);
+    const user = await createTestUser("balance-user");
     const account = await createAccountForUser(user);
-    testData.accountIds.push(account.id);
-
-    // Verify account exists before proceeding
-    const verifyAccount = await db
-      .select()
-      .from(accounts)
-      .where(eq(accounts.id, account.id))
-      .get();
-
-    if (!verifyAccount) {
-      throw new Error(`Account ${account.id} does not exist`);
-    }
-
     const caller = accountRouter.createCaller(createMockContext(user));
 
     const deposits = 200;
     const depositAmount = 0.23;
 
     for (let i = 0; i < deposits; i++) {
-      // Verify account still exists before each transaction
-      const accountCheck = await db
-        .select()
-        .from(accounts)
-        .where(eq(accounts.id, account.id))
-        .get();
-
-      if (!accountCheck) {
-        throw new Error(
-          `Account ${account.id} was deleted during test execution`
-        );
-      }
-
       await caller.fundAccount({
         accountId: account.id,
         amount: depositAmount,
@@ -153,40 +145,13 @@ describe("Account funding performance", () => {
   });
 
   it("returns the complete transaction history", async () => {
-    const user = await createTestUser("history-user@example.com");
-    testData.userIds.push(user.id);
+    const user = await createTestUser("history-user");
     const account = await createAccountForUser(user);
-    testData.accountIds.push(account.id);
-
-    // Verify account exists before proceeding
-    const verifyAccount = await db
-      .select()
-      .from(accounts)
-      .where(eq(accounts.id, account.id))
-      .get();
-
-    if (!verifyAccount) {
-      throw new Error(`Account ${account.id} does not exist`);
-    }
-
     const caller = accountRouter.createCaller(createMockContext(user));
 
     const transactionCount = 60;
 
     for (let i = 0; i < transactionCount; i++) {
-      // Verify account still exists before each transaction
-      const accountCheck = await db
-        .select()
-        .from(accounts)
-        .where(eq(accounts.id, account.id))
-        .get();
-
-      if (!accountCheck) {
-        throw new Error(
-          `Account ${account.id} was deleted during test execution`
-        );
-      }
-
       await caller.fundAccount({
         accountId: account.id,
         amount: 5 + i,
