@@ -33,12 +33,28 @@ describe("TransactionList XSS Prevention", () => {
     return cells[2] as HTMLElement; // Description is the 3rd column (index 2)
   };
 
+  // Helper function to create mock data with correct structure
+  const createMockData = (transactions: any[]) => ({
+    data: {
+      transactions,
+      pagination: {
+        page: 1,
+        limit: 10,
+        totalCount: transactions.length,
+        totalPages: 1,
+        hasNextPage: false,
+        hasPreviousPage: false,
+      },
+    },
+    isLoading: false,
+  });
+
   describe("XSS Attack Vectors", () => {
     it("should escape script tags in transaction descriptions", () => {
       const maliciousDescription = '<script>alert("XSS")</script>';
 
-      mockUseQuery.mockReturnValue({
-        data: [
+      mockUseQuery.mockReturnValue(
+        createMockData([
           {
             id: 1,
             type: "deposit",
@@ -47,9 +63,8 @@ describe("TransactionList XSS Prevention", () => {
             status: "completed",
             createdAt: new Date().toISOString(),
           },
-        ],
-        isLoading: false,
-      });
+        ])
+      );
 
       const { container } = render(<TransactionList accountId={1} />);
 
@@ -69,8 +84,8 @@ describe("TransactionList XSS Prevention", () => {
     it("should escape event handler attributes", () => {
       const maliciousDescription = '<img src="x" onerror="alert(\'XSS\')" />';
 
-      mockUseQuery.mockReturnValue({
-        data: [
+      mockUseQuery.mockReturnValue(
+        createMockData([
           {
             id: 1,
             type: "deposit",
@@ -79,9 +94,8 @@ describe("TransactionList XSS Prevention", () => {
             status: "completed",
             createdAt: new Date().toISOString(),
           },
-        ],
-        isLoading: false,
-      });
+        ])
+      );
 
       const { container } = render(<TransactionList accountId={1} />);
 
@@ -98,8 +112,8 @@ describe("TransactionList XSS Prevention", () => {
       const maliciousDescription =
         "<a href=\"javascript:alert('XSS')\">Click me</a>";
 
-      mockUseQuery.mockReturnValue({
-        data: [
+      mockUseQuery.mockReturnValue(
+        createMockData([
           {
             id: 1,
             type: "deposit",
@@ -108,9 +122,8 @@ describe("TransactionList XSS Prevention", () => {
             status: "completed",
             createdAt: new Date().toISOString(),
           },
-        ],
-        isLoading: false,
-      });
+        ])
+      );
 
       const { container } = render(<TransactionList accountId={1} />);
 
@@ -126,8 +139,8 @@ describe("TransactionList XSS Prevention", () => {
       const maliciousDescription =
         "<iframe src=\"javascript:alert('XSS')\"></iframe>";
 
-      mockUseQuery.mockReturnValue({
-        data: [
+      mockUseQuery.mockReturnValue(
+        createMockData([
           {
             id: 1,
             type: "deposit",
@@ -136,9 +149,8 @@ describe("TransactionList XSS Prevention", () => {
             status: "completed",
             createdAt: new Date().toISOString(),
           },
-        ],
-        isLoading: false,
-      });
+        ])
+      );
 
       const { container } = render(<TransactionList accountId={1} />);
 
@@ -153,8 +165,8 @@ describe("TransactionList XSS Prevention", () => {
     it("should escape SVG with script content", () => {
       const maliciousDescription = '<svg><script>alert("XSS")</script></svg>';
 
-      mockUseQuery.mockReturnValue({
-        data: [
+      mockUseQuery.mockReturnValue(
+        createMockData([
           {
             id: 1,
             type: "deposit",
@@ -163,9 +175,8 @@ describe("TransactionList XSS Prevention", () => {
             status: "completed",
             createdAt: new Date().toISOString(),
           },
-        ],
-        isLoading: false,
-      });
+        ])
+      );
 
       const { container } = render(<TransactionList accountId={1} />);
 
@@ -182,8 +193,8 @@ describe("TransactionList XSS Prevention", () => {
     it("should escape HTML entities properly", () => {
       const maliciousDescription = '&lt;script&gt;alert("XSS")&lt;/script&gt;';
 
-      mockUseQuery.mockReturnValue({
-        data: [
+      mockUseQuery.mockReturnValue(
+        createMockData([
           {
             id: 1,
             type: "deposit",
@@ -192,9 +203,8 @@ describe("TransactionList XSS Prevention", () => {
             status: "completed",
             createdAt: new Date().toISOString(),
           },
-        ],
-        isLoading: false,
-      });
+        ])
+      );
 
       const { container } = render(<TransactionList accountId={1} />);
 
@@ -208,8 +218,8 @@ describe("TransactionList XSS Prevention", () => {
       const maliciousDescription =
         '<div><script>alert("XSS")</script><img src="x" onerror="alert(\'XSS\')" /></div>';
 
-      mockUseQuery.mockReturnValue({
-        data: [
+      mockUseQuery.mockReturnValue(
+        createMockData([
           {
             id: 1,
             type: "deposit",
@@ -218,9 +228,8 @@ describe("TransactionList XSS Prevention", () => {
             status: "completed",
             createdAt: new Date().toISOString(),
           },
-        ],
-        isLoading: false,
-      });
+        ])
+      );
 
       const { container } = render(<TransactionList accountId={1} />);
 
@@ -239,8 +248,8 @@ describe("TransactionList XSS Prevention", () => {
     it("should handle safe text descriptions normally", () => {
       const safeDescription = "Funding from card";
 
-      mockUseQuery.mockReturnValue({
-        data: [
+      mockUseQuery.mockReturnValue(
+        createMockData([
           {
             id: 1,
             type: "deposit",
@@ -249,9 +258,8 @@ describe("TransactionList XSS Prevention", () => {
             status: "completed",
             createdAt: new Date().toISOString(),
           },
-        ],
-        isLoading: false,
-      });
+        ])
+      );
 
       render(<TransactionList accountId={1} />);
 
@@ -261,8 +269,8 @@ describe("TransactionList XSS Prevention", () => {
     });
 
     it("should handle null/undefined descriptions safely", () => {
-      mockUseQuery.mockReturnValue({
-        data: [
+      mockUseQuery.mockReturnValue(
+        createMockData([
           {
             id: 1,
             type: "deposit",
@@ -271,9 +279,8 @@ describe("TransactionList XSS Prevention", () => {
             status: "completed",
             createdAt: new Date().toISOString(),
           },
-        ],
-        isLoading: false,
-      });
+        ])
+      );
 
       render(<TransactionList accountId={1} />);
 
@@ -288,8 +295,8 @@ describe("TransactionList XSS Prevention", () => {
     it("should verify React automatically escapes content", () => {
       const maliciousDescription = '<script>document.cookie="stolen"</script>';
 
-      mockUseQuery.mockReturnValue({
-        data: [
+      mockUseQuery.mockReturnValue(
+        createMockData([
           {
             id: 1,
             type: "deposit",
@@ -298,9 +305,8 @@ describe("TransactionList XSS Prevention", () => {
             status: "completed",
             createdAt: new Date().toISOString(),
           },
-        ],
-        isLoading: false,
-      });
+        ])
+      );
 
       const { container } = render(<TransactionList accountId={1} />);
 
