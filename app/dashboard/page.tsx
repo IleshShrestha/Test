@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { trpc } from "@/lib/trpc/client";
 import { AccountCreationModal } from "@/components/AccountCreationModal";
@@ -9,6 +10,7 @@ import { TransactionList } from "@/components/TransactionList";
 
 export default function DashboardPage() {
   const router = useRouter();
+  const queryClient = useQueryClient();
   const [isCreatingAccount, setIsCreatingAccount] = useState(false);
   const [fundingAccountId, setFundingAccountId] = useState<number | null>(null);
   const [selectedAccountId, setSelectedAccountId] = useState<number | null>(
@@ -21,6 +23,7 @@ export default function DashboardPage() {
 
   const handleLogout = async () => {
     await logoutMutation.mutateAsync();
+    queryClient.clear();
     router.push("/");
   };
 

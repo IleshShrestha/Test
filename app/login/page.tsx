@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
@@ -15,6 +16,7 @@ type LoginFormData = {
 export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
+  const queryClient = useQueryClient();
 
   const {
     register,
@@ -27,6 +29,7 @@ export default function LoginPage() {
     try {
       setError("");
       await loginMutation.mutateAsync(data);
+      queryClient.clear();
       router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Invalid credentials");
