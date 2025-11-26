@@ -87,7 +87,7 @@ export function validateEmail(email: string): EmailValidationResult {
   }
 
   // Check for dot at start or end of local part
-  const [localPart, domainPart] = normalizedEmail.split("@");
+  const [localPart] = normalizedEmail.split("@");
 
   // Check length limits (RFC 5321)
   if (normalizedEmail.length > 254) {

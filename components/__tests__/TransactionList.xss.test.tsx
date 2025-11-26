@@ -34,7 +34,15 @@ describe("TransactionList XSS Prevention", () => {
   };
 
   // Helper function to create mock data with correct structure
-  const createMockData = (transactions: any[]) => ({
+  interface MockTransaction {
+    id: number;
+    type: string;
+    amount: number;
+    description: string | null;
+    status: string;
+    createdAt: string;
+  }
+  const createMockData = (transactions: MockTransaction[]) => ({
     data: {
       transactions,
       pagination: {

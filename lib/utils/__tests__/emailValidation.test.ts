@@ -2,7 +2,6 @@ import {
   validateEmail,
   isValidEmail,
   normalizeEmail,
-  type EmailValidationResult,
 } from "../emailValidation";
 
 describe("Email Validation", () => {
