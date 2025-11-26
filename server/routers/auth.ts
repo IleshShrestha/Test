@@ -40,7 +40,21 @@ export const authRouter = router({
           ),
         firstName: z.string().min(1),
         lastName: z.string().min(1),
-        phoneNumber: z.string().regex(/^\+?\d{10,15}$/),
+        phoneNumber: z
+          .string()
+          .regex(/^\+[1-9]\d{6,14}$/, {
+            message: "Phone number must be in E.164 format starting with +",
+          })
+          .refine(
+            (val) => {
+              // Ensure proper E.164 format: + followed by 1-15 digits, cannot start with +0
+              return /^\+\d{1,15}$/.test(val) && !val.startsWith("+0");
+            },
+            {
+              message:
+                "Invalid phone number format. Must be E.164 format (e.g., +14155552671)",
+            }
+          ),
         dateOfBirth: z
           .string()
           .refine(

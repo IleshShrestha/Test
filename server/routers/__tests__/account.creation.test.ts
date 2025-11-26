@@ -15,7 +15,7 @@ import { TRPCError } from "@trpc/server";
 const baseUser = {
   firstName: "Test",
   lastName: "User",
-  phoneNumber: "1234567890",
+  phoneNumber: "+1234567890",
   dateOfBirth: "1990-01-01",
   ssn: "123456789",
   address: "123 Main St",
