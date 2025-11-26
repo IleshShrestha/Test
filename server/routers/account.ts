@@ -5,11 +5,10 @@ import { db } from "@/lib/db";
 import { accounts, transactions } from "@/lib/db/schema";
 import { eq, and, desc, sql } from "drizzle-orm";
 import { validateCardNumber } from "@/lib/utils/cardValidation";
+import { randomInt } from "crypto";
 
 function generateAccountNumber(): string {
-  return Math.floor(Math.random() * 1000000000)
-    .toString()
-    .padStart(10, "0");
+  return randomInt(0, 1000000000).toString().padStart(10, "0");
 }
 
 export const accountRouter = router({
