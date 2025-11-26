@@ -12,8 +12,6 @@ const COMMON_TLD_TYPOS: Record<string, string> = {
   ".co": ".com",
   ".comm": ".com",
   ".om": ".com",
-  ".net": ".net", // Keep for reference, but .net is valid
-  ".org": ".org", // Keep for reference, but .org is valid
 };
 
 // Valid email regex that supports all TLDs (including new gTLDs)

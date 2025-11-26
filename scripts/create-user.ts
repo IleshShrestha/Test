@@ -1,7 +1,6 @@
 import Database from "better-sqlite3";
 import bcrypt from "bcryptjs";
 import path from "path";
-import { encryptSSN } from "../lib/encryption/encryption";
 import { validateEmail, normalizeEmail } from "../lib/utils/emailValidation";
 
 const dbPath = path.join(__dirname, "..", "bank.db");
