@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { trpc } from "@/lib/trpc/client";
+import { keepPreviousData } from "@tanstack/react-query";
 
 interface TransactionListProps {
   accountId: number;
@@ -16,11 +17,16 @@ export function TransactionList({ accountId }: TransactionListProps) {
     setPage(1);
   }, [accountId]);
 
-  const { data, isLoading } = trpc.account.getTransactions.useQuery({
-    accountId,
-    page,
-    limit,
-  });
+  const { data, isLoading, isFetching } = trpc.account.getTransactions.useQuery(
+    {
+      accountId,
+      page,
+      limit,
+    },
+    {
+      placeholderData: keepPreviousData,
+    }
+  );
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -60,6 +66,11 @@ export function TransactionList({ accountId }: TransactionListProps) {
 
   return (
     <div className="bg-white shadow overflow-hidden rounded-lg">
+      {/* {isFetching && !isLoading && (
+        <div className="w-full bg-blue-50 text-blue-700 text-sm px-4 py-2 border-b border-blue-100">
+          Loading more transactions...
+        </div>
+      )} */}
       <table className="min-w-full divide-y divide-gray-200">
         <thead className="bg-gray-50">
           <tr>
