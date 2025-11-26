@@ -14,6 +14,7 @@
     "db:list-sessions": "node scripts/db-utils.js list-sessions",
     "db:clear": "node scripts/db-utils.js clear",
     "db:delete-user": "node scripts/db-utils.js delete-user",
+    "db:create-user": "tsx scripts/create-user.ts",
     "seed:funding": "tsx scripts/seed-funding.ts"
   },
   "dependencies": {
