@@ -53,6 +53,7 @@ export const accountRouter = router({
         isUnique = !existing;
       }
 
+      // Insert account
       await db.insert(accounts).values({
         userId: ctx.user.id,
         accountNumber: accountNumber!,
@@ -62,23 +63,27 @@ export const accountRouter = router({
       });
 
       // Fetch the created account
-      const account = await db
+      let account = await db
         .select()
         .from(accounts)
         .where(eq(accounts.accountNumber, accountNumber!))
         .get();
 
-      return (
-        account || {
-          id: 0,
-          userId: ctx.user.id,
-          accountNumber: accountNumber!,
-          accountType: input.accountType,
-          balance: 100,
-          status: "pending",
-          createdAt: new Date().toISOString(),
-        }
-      );
+      // If fetch fails, delete the orphaned account to maintain consistency
+      if (!account) {
+        // Clean up the orphaned account that was created
+        await db
+          .delete(accounts)
+          .where(eq(accounts.accountNumber, accountNumber!));
+
+        throw new TRPCError({
+          code: "INTERNAL_SERVER_ERROR",
+          message:
+            "Account was created but could not be retrieved. Please try again.",
+        });
+      }
+
+      return account;
     }),
 
   getAccounts: protectedProcedure.query(async ({ ctx }) => {
