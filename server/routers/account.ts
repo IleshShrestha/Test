@@ -170,23 +170,20 @@ export const accountRouter = router({
         });
       }
 
-      // Create transaction
-      await db.insert(transactions).values({
-        accountId: input.accountId,
-        type: "deposit",
-        amount,
-        description: `Funding from ${input.fundingSource.type}`,
-        status: "completed",
-        processedAt: new Date().toISOString(),
-      });
+      // Create transaction and get it back in one operation using returning
+      const transactionResult = await db
+        .insert(transactions)
+        .values({
+          accountId: input.accountId,
+          type: "deposit",
+          amount,
+          description: `Funding from ${input.fundingSource.type}`,
+          status: "completed",
+          processedAt: new Date().toISOString(),
+        })
+        .returning();
 
-      const transaction = await db
-        .select()
-        .from(transactions)
-        .where(eq(transactions.accountId, input.accountId))
-        .orderBy(desc(transactions.id))
-        .limit(1)
-        .get();
+      const transaction = transactionResult[0];
 
       const currentBalanceInCents = Math.round(account.balance * 100);
       const amountInCents = Math.round(amount * 100);
