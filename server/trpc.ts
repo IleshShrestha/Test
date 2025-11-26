@@ -6,7 +6,9 @@ import { db } from "@/lib/db";
 import { sessions, users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-export async function createContext(opts: CreateNextContextOptions | FetchCreateContextFnOptions) {
+export async function createContext(
+  opts: CreateNextContextOptions | FetchCreateContextFnOptions
+) {
   // Handle different adapter types
   let req: any;
   let res: any;
@@ -48,21 +50,50 @@ export async function createContext(opts: CreateNextContextOptions | FetchCreate
   let user = null;
   if (token) {
     try {
-      const decoded = jwt.verify(token, process.env.JWT_SECRET || "temporary-secret-for-interview") as {
+      // First verify JWT hasn't expired
+      const decoded = jwt.verify(
+        token,
+        process.env.JWT_SECRET || "temporary-secret-for-interview"
+      ) as {
         userId: number;
+        exp?: number; // JWT expiration timestamp
       };
 
-      const session = await db.select().from(sessions).where(eq(sessions.token, token)).get();
+      const session = await db
+        .select()
+        .from(sessions)
+        .where(eq(sessions.token, token))
+        .get();
 
-      if (session && new Date(session.expiresAt) > new Date()) {
-        user = await db.select().from(users).where(eq(users.id, decoded.userId)).get();
-        const expiresIn = new Date(session.expiresAt).getTime() - new Date().getTime();
-        if (expiresIn < 60000) {
-          console.warn("Session about to expire");
+      if (session) {
+        const now = new Date();
+        const expiresAt = new Date(session.expiresAt);
+
+        // Adding a buffer time
+        const BUFFER_TIME_MS = 5 * 60 * 1000; // 5 minutes
+        const expiresWithBuffer = new Date(
+          expiresAt.getTime() - BUFFER_TIME_MS
+        );
+
+        if (expiresWithBuffer <= now) {
+          await db.delete(sessions).where(eq(sessions.token, token));
+        } else {
+          // Session is valid - fetch the user
+          user = await db
+            .select()
+            .from(users)
+            .where(eq(users.id, decoded.userId))
+            .get();
         }
       }
     } catch (error) {
-      // Invalid token
+      // clean up session if invalid or expired JWT -
+      if (token) {
+        await db
+          .delete(sessions)
+          .where(eq(sessions.token, token))
+          .catch(() => {});
+      }
     }
   }
 
