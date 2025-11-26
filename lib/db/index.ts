@@ -4,15 +4,17 @@ import * as schema from "./schema";
 
 const dbPath = "bank.db";
 
-// Initialize database with WAL mode and busy timeout
 function createDatabase() {
   const sqlite = new Database(dbPath);
 
+  // Enable foreign key constraints (required for SQLite to enforce REFERENCES)
+  sqlite.pragma("foreign_keys = ON");
+
   // Enable WAL mode for better concurrency and performance
-  // This allows multiple readers simultaneously
+  // Allows multiple readers simultaneously
   sqlite.pragma("journal_mode = WAL");
 
-  // Set busy timeout to handle concurrent access gracefully (5 seconds)
+  // 5 seconds
   sqlite.pragma("busy_timeout = 5000");
 
   return sqlite;
