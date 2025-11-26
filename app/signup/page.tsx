@@ -250,12 +250,13 @@ export default function SignupPage() {
                   {...register("phoneNumber", {
                     required: "Phone number is required",
                     pattern: {
-                      value: /^\d{10}$/,
-                      message: "Phone number must be 10 digits",
+                      value: /^\+[1-9]\d{6,14}$/,
+                      message:
+                        "Phone number must be in E.164 format starting with + (e.g., +14155552671)",
                     },
                   })}
                   type="tel"
-                  placeholder="1234567890"
+                  placeholder="+14155552671"
                   className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm p-2 border"
                 />
                 {errors.phoneNumber && (
