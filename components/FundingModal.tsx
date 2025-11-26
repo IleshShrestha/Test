@@ -7,6 +7,7 @@ import {
   normalizeCardNumber,
   validateCardNumber,
 } from "@/lib/utils/cardValidation";
+import { normalizeFundingAmount } from "@/lib/utils/amountNormalization";
 
 interface FundingModalProps {
   accountId: number;
@@ -31,6 +32,7 @@ export function FundingModal({
     register,
     handleSubmit,
     watch,
+    setValue,
     formState: { errors },
   } = useForm<FundingFormData>({
     defaultValues: {
@@ -46,7 +48,9 @@ export function FundingModal({
     setError("");
 
     try {
-      const amount = parseFloat(data.amount);
+      // Normalize the amount before parsing
+      const normalizedAmountStr = normalizeFundingAmount(data.amount);
+      const amount = parseFloat(normalizedAmountStr);
       const normalizedAccountNumber =
         data.fundingType === "card"
           ? normalizeCardNumber(data.accountNumber)
@@ -88,17 +92,30 @@ export function FundingModal({
                 {...register("amount", {
                   required: "Amount is required",
                   pattern: {
-                    value: /^\d+\.?\d{0,2}$/,
+                    value: /^[\d,.\s]+$/,
                     message: "Invalid amount format",
                   },
                   validate: {
-                    minimumAmount: (value) =>
-                      parseFloat(value) >= 10 ||
-                      "Amount must be at least $10.00",
+                    minimumAmount: (value) => {
+                      const normalized = normalizeFundingAmount(value);
+                      const num = parseFloat(normalized);
+                      return (
+                        (num >= 10 && !isNaN(num)) ||
+                        "Amount must be at least $10.00"
+                      );
+                    },
+                    maximumAmount: (value) => {
+                      const normalized = normalizeFundingAmount(value);
+                      const num = parseFloat(normalized);
+                      return (
+                        (num <= 10000 && !isNaN(num)) ||
+                        "Amount cannot exceed $10,000"
+                      );
+                    },
                   },
-                  max: {
-                    value: 10000,
-                    message: "Amount cannot exceed $10,000",
+                  onChange: (e) => {
+                    const normalized = normalizeFundingAmount(e.target.value);
+                    setValue("amount", normalized, { shouldValidate: true });
                   },
                 })}
                 type="text"
