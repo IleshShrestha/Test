@@ -4,18 +4,21 @@ import * as schema from "./schema";
 
 const dbPath = "bank.db";
 
-// Single connection instance with proper configuration
-const sqlite = new Database(dbPath, {
-  // Enable WAL mode for better concurrency
+// Initialize database with WAL mode and busy timeout
+function createDatabase() {
+  const sqlite = new Database(dbPath);
+
+  // Enable WAL mode for better concurrency and performance
   // This allows multiple readers simultaneously
-});
+  sqlite.pragma("journal_mode = WAL");
 
-// Enable WAL mode for better concurrency and performance
-sqlite.pragma("journal_mode = WAL");
+  // Set busy timeout to handle concurrent access gracefully (5 seconds)
+  sqlite.pragma("busy_timeout = 5000");
 
-// Set busy timeout to handle concurrent access gracefully
-sqlite.pragma("busy_timeout = 5000");
+  return sqlite;
+}
 
+const sqlite = createDatabase();
 export const db = drizzle(sqlite, { schema });
 
 // Track connection for cleanup
