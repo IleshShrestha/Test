@@ -31,6 +31,41 @@ const createMockContext = (user: any) => ({
   res: { setHeader: jest.fn(), set: jest.fn() } as any,
 });
 
+// Track test emails for cleanup
+const testEmails: string[] = [];
+
+const cleanupUser = async (email: string) => {
+  const user = await db
+    .select()
+    .from(users)
+    .where(eq(users.email, email))
+    .get();
+  if (user) {
+    // Delete in order to respect foreign key constraints
+    // First, get all accounts for this user
+    const userAccounts = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.userId, user.id))
+      .all();
+
+    // Delete transactions for all accounts
+    for (const account of userAccounts) {
+      await db
+        .delete(transactions)
+        .where(eq(transactions.accountId, account.id))
+        .run();
+    }
+
+    // Delete sessions, accounts, and user in order to respect foreign key constraints
+    await Promise.all([
+      db.delete(sessions).where(eq(sessions.userId, user.id)).run(),
+      db.delete(accounts).where(eq(accounts.userId, user.id)).run(),
+      db.delete(users).where(eq(users.id, user.id)).run(),
+    ]);
+  }
+};
+
 const createTestUser = async (identifier: string) => {
   const email = `${identifier}-${Date.now()}@example.com`;
   await db.insert(users).values({
@@ -48,18 +83,23 @@ const createTestUser = async (identifier: string) => {
     throw new Error("Failed to create test user");
   }
 
+  // Track the email for cleanup
+  testEmails.push(email);
+
   return user;
 };
 
 beforeEach(async () => {
-  // Delete in order to respect foreign key constraints
-  await db.delete(transactions).run();
-  await db.delete(sessions).run();
-  await db.delete(accounts).run();
-  await db.delete(users).run();
+  // Clean up data from previous test run
+  await Promise.all(testEmails.map(cleanupUser));
+  testEmails.length = 0; // Clear the array
 });
 
-// Note: Cleanup is done within each test to avoid conflicts when tests run in parallel
+afterEach(async () => {
+  // Clean up any remaining test data after each test
+  await Promise.all(testEmails.map(cleanupUser));
+  testEmails.length = 0; // Clear the array
+});
 
 describe("Account Creation - PERF-401 Fix", () => {
   it("should throw error instead of returning fake $100 balance when account fetch fails", async () => {
@@ -115,10 +155,6 @@ describe("Account Creation - PERF-401 Fix", () => {
     expect(account.balance).toBe(0); // ✅ Should be $0, not $100
     expect(account.status).toBe("active"); // ✅ Should be "active", not "pending"
     expect(account.accountType).toBe("checking");
-
-    // Clean up this test's data
-    await db.delete(accounts).where(eq(accounts.id, account.id)).run();
-    await db.delete(users).where(eq(users.id, user.id)).run();
   });
 
   it("should not return fake account data with id: 0", async () => {
@@ -131,9 +167,5 @@ describe("Account Creation - PERF-401 Fix", () => {
     expect(account.id).not.toBe(0);
     expect(account.id).toBeGreaterThan(0);
     expect(account.balance).toBe(0);
-
-    // Clean up this test's data
-    await db.delete(accounts).where(eq(accounts.id, account.id)).run();
-    await db.delete(users).where(eq(users.id, user.id)).run();
   });
 });
