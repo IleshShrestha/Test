@@ -1,7 +1,7 @@
-import { describe, it, expect, beforeEach } from "@jest/globals";
+import { describe, it, expect, afterEach } from "@jest/globals";
 import { accountRouter } from "../account";
 import { db } from "@/lib/db";
-import { users, accounts, transactions } from "@/lib/db/schema";
+import { users, accounts, transactions, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
 const baseUser = {
@@ -65,15 +65,43 @@ const createAccountForUser = async (
   return account;
 };
 
-beforeEach(async () => {
-  await db.delete(transactions).run();
-  await db.delete(accounts).run();
+// Track test data for cleanup
+const testData: { userIds: number[]; accountIds: number[] } = {
+  userIds: [],
+  accountIds: [],
+};
+
+afterEach(async () => {
+  // Clean up only data created by this test file
+  for (const accountId of testData.accountIds) {
+    try {
+      await db
+        .delete(transactions)
+        .where(eq(transactions.accountId, accountId))
+        .run();
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+  for (const userId of testData.userIds) {
+    try {
+      await db.delete(sessions).where(eq(sessions.userId, userId)).run();
+      await db.delete(accounts).where(eq(accounts.userId, userId)).run();
+      await db.delete(users).where(eq(users.id, userId)).run();
+    } catch (error) {
+      // Ignore errors
+    }
+  }
+  testData.userIds = [];
+  testData.accountIds = [];
 });
 
 describe("Account funding performance", () => {
   it("maintains precise balances after many deposits", async () => {
     const user = await createTestUser("balance-user@example.com");
+    testData.userIds.push(user.id);
     const account = await createAccountForUser(user);
+    testData.accountIds.push(account.id);
     const caller = accountRouter.createCaller(createMockContext(user));
 
     const deposits = 200;
@@ -101,7 +129,9 @@ describe("Account funding performance", () => {
 
   it("returns the complete transaction history", async () => {
     const user = await createTestUser("history-user@example.com");
+    testData.userIds.push(user.id);
     const account = await createAccountForUser(user);
+    testData.accountIds.push(account.id);
     const caller = accountRouter.createCaller(createMockContext(user));
 
     const transactionCount = 60;

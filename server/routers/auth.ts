@@ -226,8 +226,10 @@ export const authRouter = router({
     }),
 
   logout: publicProcedure.mutation(async ({ ctx }) => {
+    let deleted = false;
+
     if (ctx.user) {
-      // Delete session from database
+      // Extract token
       let token: string | undefined;
       if ("cookies" in ctx.req) {
         token = (ctx.req as any).cookies.session;
@@ -239,11 +241,29 @@ export const authRouter = router({
           .find((c: string) => c.startsWith("session="))
           ?.split("=")[1];
       }
+
       if (token) {
-        await db.delete(sessions).where(eq(sessions.token, token));
+        // Verify session exists before deletion
+        const session = await db
+          .select()
+          .from(sessions)
+          .where(eq(sessions.token, token))
+          .get();
+
+        if (session) {
+          await db.delete(sessions).where(eq(sessions.token, token));
+          // Verify deletion was successful
+          const verifyDeleted = await db
+            .select()
+            .from(sessions)
+            .where(eq(sessions.token, token))
+            .get();
+          deleted = !verifyDeleted; // Session should not exist after deletion
+        }
       }
     }
 
+    // Clear cookie regardless
     if ("setHeader" in ctx.res) {
       ctx.res.setHeader(
         "Set-Cookie",
@@ -257,8 +277,12 @@ export const authRouter = router({
     }
 
     return {
-      success: true,
-      message: ctx.user ? "Logged out successfully" : "No active session",
+      success: deleted || !ctx.user, // Only true if session was deleted or no user was logged in
+      message: deleted
+        ? "Logged out successfully"
+        : ctx.user
+        ? "Failed to log out - session may still be active"
+        : "No active session",
     };
   }),
 });
