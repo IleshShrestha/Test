@@ -98,7 +98,10 @@ export const accountRouter = router({
     .input(
       z.object({
         accountId: z.number(),
-        amount: z.number().positive(),
+        amount: z
+          .number()
+          .min(10, { message: "Amount must be at least $10.00" })
+          .max(10000, { message: "Amount cannot exceed $10,000" }),
         fundingSource: z
           .object({
             type: z.enum(["card", "bank"]),
@@ -185,17 +188,19 @@ export const accountRouter = router({
 
       const transaction = transactionResult[0];
 
-      const currentBalanceInCents = Math.round(account.balance * 100);
       const amountInCents = Math.round(amount * 100);
-      const newBalanceInCents = currentBalanceInCents + amountInCents;
-      const newBalance = newBalanceInCents / 100;
 
-      await db
+      const updatedAccount = await db
         .update(accounts)
         .set({
-          balance: newBalance,
+          balance: sql`
+            ROUND(((ROUND(balance * 100) + ${amountInCents})) / 100.0, 2)
+          `,
         })
-        .where(eq(accounts.id, input.accountId));
+        .where(eq(accounts.id, input.accountId))
+        .returning({ balance: accounts.balance });
+
+      const newBalance = updatedAccount[0]?.balance ?? account.balance;
 
       return {
         transaction,

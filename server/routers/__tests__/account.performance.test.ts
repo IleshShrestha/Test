@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "@jest/globals";
 import { accountRouter } from "../account";
 import { db } from "@/lib/db";
 import { users, accounts, transactions, sessions } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 const baseUser = {
   firstName: "Test",
@@ -122,7 +122,7 @@ describe("Account funding performance", () => {
     const caller = accountRouter.createCaller(createMockContext(user));
 
     const deposits = 200;
-    const depositAmount = 0.23;
+    const depositAmount = 10.23;
 
     for (let i = 0; i < deposits; i++) {
       await caller.fundAccount({
@@ -154,7 +154,7 @@ describe("Account funding performance", () => {
     for (let i = 0; i < transactionCount; i++) {
       await caller.fundAccount({
         accountId: account.id,
-        amount: 5 + i,
+        amount: 10 + i,
         fundingSource: {
           type: "card",
           accountNumber: "4111111111111111",
@@ -172,7 +172,47 @@ describe("Account funding performance", () => {
     // Transactions are returned newest first (descending by amount), sort ascending for comparison
     const sortedAmounts = [...amounts].sort((a, b) => a - b);
     expect(sortedAmounts).toEqual(
-      Array.from({ length: transactionCount }, (_, i) => 5 + i)
+      Array.from({ length: transactionCount }, (_, i) => 10 + i)
     );
+  });
+
+  it("handles concurrent funding without race conditions", async () => {
+    const user = await createTestUser("concurrent-user");
+    const account = await createAccountForUser(user);
+    const caller = accountRouter.createCaller(createMockContext(user));
+
+    const concurrentDeposits = 50;
+    const amountPerDeposit = 37.42;
+
+    await Promise.all(
+      Array.from({ length: concurrentDeposits }, () =>
+        caller.fundAccount({
+          accountId: account.id,
+          amount: amountPerDeposit,
+          fundingSource: {
+            type: "card",
+            accountNumber: "4111111111111111",
+          },
+        })
+      )
+    );
+
+    const updatedAccount = await db
+      .select()
+      .from(accounts)
+      .where(eq(accounts.id, account.id))
+      .get();
+
+    expect(updatedAccount?.balance).toBeCloseTo(
+      concurrentDeposits * amountPerDeposit,
+      2
+    );
+
+    const transactionCountResult = await db
+      .select({ count: sql<number>`cast(count(*) as integer)` })
+      .from(transactions)
+      .where(eq(transactions.accountId, account.id));
+
+    expect(transactionCountResult[0]?.count).toBe(concurrentDeposits);
   });
 });
