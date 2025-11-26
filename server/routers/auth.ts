@@ -8,12 +8,26 @@ import { db } from "@/lib/db";
 import { users, sessions } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { encryptSSN } from "@/lib/encryption/encryption";
+import { validateEmail, normalizeEmail } from "@/lib/utils/emailValidation";
 
 export const authRouter = router({
   signup: publicProcedure
     .input(
       z.object({
-        email: z.string().email().toLowerCase(),
+        email: z
+          .string()
+          .min(1, "Email is required")
+          .refine(
+            (val) => {
+              const validation = validateEmail(val);
+              return validation.isValid;
+            },
+            (val) => {
+              const validation = validateEmail(val);
+              return { message: validation.error || "Invalid email address" };
+            }
+          )
+          .transform((val) => normalizeEmail(val)), // Normalize to lowercase
         password: z
           .string()
           .min(12, "Password must be at least 12 characters")
@@ -139,7 +153,20 @@ export const authRouter = router({
   login: publicProcedure
     .input(
       z.object({
-        email: z.string().email().toLowerCase(),
+        email: z
+          .string()
+          .min(1, "Email is required")
+          .refine(
+            (val) => {
+              const validation = validateEmail(val);
+              return validation.isValid;
+            },
+            (val) => {
+              const validation = validateEmail(val);
+              return { message: validation.error || "Invalid email address" };
+            }
+          )
+          .transform((val) => normalizeEmail(val)), // Normalize to lowercase
         password: z.string().min(12),
       })
     )

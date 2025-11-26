@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { trpc } from "@/lib/trpc/client";
 import { US_STATE_CODES } from "@/lib/constants/usStates";
+import { validateEmail } from "@/lib/utils/emailValidation";
 import Link from "next/link";
 
 type SignupFormData = {
@@ -26,6 +27,7 @@ export default function SignupPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [error, setError] = useState("");
+  const [emailWarnings, setEmailWarnings] = useState<string[]>([]);
 
   const {
     register,
@@ -95,9 +97,17 @@ export default function SignupPage() {
                 <input
                   {...register("email", {
                     required: "Email is required",
-                    pattern: {
-                      value: /^\S+@\S+$/i,
-                      message: "Invalid email address",
+                    validate: (value) => {
+                      const validation = validateEmail(value);
+                      if (!validation.isValid) {
+                        return validation.error || "Invalid email address";
+                      }
+                      setEmailWarnings(validation.warnings);
+                      return true;
+                    },
+                    onChange: (e) => {
+                      const validation = validateEmail(e.target.value);
+                      setEmailWarnings(validation.warnings);
                     },
                   })}
                   type="email"
@@ -107,6 +117,15 @@ export default function SignupPage() {
                   <p className="mt-1 text-sm text-red-600">
                     {errors.email.message}
                   </p>
+                )}
+                {emailWarnings.length > 0 && !errors.email && (
+                  <div className="mt-1 space-y-1">
+                    {emailWarnings.map((warning, idx) => (
+                      <p key={idx} className="text-sm text-amber-600">
+                        {warning}
+                      </p>
+                    ))}
+                  </div>
                 )}
               </div>
 
